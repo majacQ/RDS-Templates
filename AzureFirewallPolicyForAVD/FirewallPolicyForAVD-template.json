@@ -40,7 +40,7 @@
     },
     "variables": {
         "avd-core-base-priority": 10000,
-        "NetworkRules_WindowsVirtualDesktop-priority": "[add(variables('avd-core-base-priority'), 1000)]",
+        "NetworkRules_AzureVirtualDesktop-priority": "[add(variables('avd-core-base-priority'), 1000)]",
         "avd-optional-base-priority": 20000,
         "NetworkRules_AVD-Optional-priority": "[add(variables('avd-optional-base-priority'), 1000)]",
         "ApplicationRules_AVD-Optional-priority": "[add(variables('avd-optional-base-priority'), 2000)]"
@@ -69,6 +69,7 @@
             "apiVersion": "2020-11-01",
             "name": "[concat(parameters('firewallPolicies_AVD_DefaultPolicy_name'), '/AVD-Core')]",
             "location": "[parameters('location')]",
+
             "dependsOn": [
                 "[resourceId('Microsoft.Network/firewallPolicies', parameters('firewallPolicies_AVD_DefaultPolicy_name'))]"
             ],
@@ -102,7 +103,7 @@
                             },
                             {
                                 "ruleType": "NetworkRule",
-                                "name": "Agent Traffic",
+                                "name": "Agent Traffic (1)",
                                 "ipProtocols": [
                                     "TCP"
                                 ],
@@ -115,6 +116,25 @@
                                 ],
                                 "destinationIpGroups": [],
                                 "destinationFqdns": [],
+                                "destinationPorts": [
+                                    "443"
+                                ]
+                            },
+                            {
+                                "ruleType": "NetworkRule",
+                                "name": "Agent Traffic (2)",
+                                "ipProtocols": [
+                                    "TCP"
+                                ],
+                                "sourceAddresses": [
+                                    "[parameters('avd-hostpool-subnet')]"
+                                ],
+                                "sourceIpGroups": [],
+                                "destinationAddresses": [],
+                                "destinationIpGroups": [],
+                                "destinationFqdns": [
+                                    "gcs.prod.monitoring.core.windows.net"
+                                ],
                                 "destinationPorts": [
                                     "443"
                                 ]
@@ -216,44 +236,6 @@
                             },
                             {
                                 "ruleType": "NetworkRule",
-                                "name": "Azure Instance Metadata Service Endpoint",
-                                "ipProtocols": [
-                                    "TCP"
-                                ],
-                                "sourceAddresses": [
-                                    "[parameters('avd-hostpool-subnet')]"
-                                ],
-                                "sourceIpGroups": [],
-                                "destinationAddresses": [
-                                    "169.254.169.254"
-                                ],
-                                "destinationIpGroups": [],
-                                "destinationFqdns": [],
-                                "destinationPorts": [
-                                    "80"
-                                ]
-                            },
-                            {
-                                "ruleType": "NetworkRule",
-                                "name": "Session Host Health Monitoring",
-                                "ipProtocols": [
-                                    "TCP"
-                                ],
-                                "sourceAddresses": [
-                                    "[parameters('avd-hostpool-subnet')]"
-                                ],
-                                "sourceIpGroups": [],
-                                "destinationAddresses": [
-                                    "168.63.129.16"
-                                ],
-                                "destinationIpGroups": [],
-                                "destinationFqdns": [],
-                                "destinationPorts": [
-                                    "80"
-                                ]
-                            },
-                            {
-                                "ruleType": "NetworkRule",
                                 "name": "Certificate CRL OneOCSP",
                                 "ipProtocols": [
                                     "TCP"
@@ -289,10 +271,29 @@
                                 "destinationPorts": [
                                     "80"
                                 ]
+                            },
+                            {
+                                "ruleType": "NetworkRule",
+                                "name": "Authentication to Microsoft Online Services",
+                                "ipProtocols": [
+                                    "TCP"
+                                ],
+                                "sourceAddresses": [
+                                    "[parameters('avd-hostpool-subnet')]"
+                                ],
+                                "sourceIpGroups": [],
+                                "destinationAddresses": [],
+                                "destinationIpGroups": [],
+                                "destinationFqdns": [
+                                    "login.microsoftonline.com"
+                                ],
+                                "destinationPorts": [
+                                    "443"
+                                ]
                             }
                         ],
-                        "name": "NetworkRules_WindowsVirtualDesktop",
-                        "priority": "[variables('NetworkRules_WindowsVirtualDesktop-priority')]"
+                        "name": "NetworkRules_AVD-Core",
+                        "priority": "[variables('NetworkRules_AzureVirtualDesktop-priority')]"
                     }
                 ]
             }
@@ -303,7 +304,7 @@
             "name": "[concat(parameters('firewallPolicies_AVD_DefaultPolicy_name'), '/AVD-Optional')]",
             "location": "[parameters('location')]",
             "dependsOn": [
-                "[resourceId('Microsoft.Network/firewallPolicies', parameters('firewallPolicies_AVD_DefaultPolicy_name'))]"
+                "[resourceId('Microsoft.Network/firewallPolicies/ruleCollectionGroups', parameters('firewallPolicies_AVD_DefaultPolicy_name'), 'AVD-Core')]"
             ],
             "properties": {
                 "priority": "[variables('avd-optional-base-priority')]",
@@ -332,25 +333,6 @@
                                 ],
                                 "destinationPorts": [
                                     "123"
-                                ]
-                            },
-                            {
-                                "ruleType": "NetworkRule",
-                                "name": "AuthToMSOL",
-                                "ipProtocols": [
-                                    "TCP"
-                                ],
-                                "sourceAddresses": [
-                                    "[parameters('avd-hostpool-subnet')]"
-                                ],
-                                "sourceIpGroups": [],
-                                "destinationAddresses": [],
-                                "destinationIpGroups": [],
-                                "destinationFqdns": [
-                                    "login.microsoftonline.com"
-                                ],
-                                "destinationPorts": [
-                                    "443"
                                 ]
                             },
                             {
@@ -387,6 +369,57 @@
                                 "destinationFqdns": [
                                     "www.msftconnecttest.com"
                                 ],
+                                "destinationPorts": [
+                                    "443"
+                                ]
+                            },
+                            {
+                                "ruleType": "NetworkRule",
+                                "name": "RDP Shortpath Server Endpoint",
+                                "ipProtocols": [
+                                    "UDP"
+                                ],
+                                "sourceAddresses": [
+                                    "[parameters('avd-hostpool-subnet')]"
+                                ],
+                                "sourceIpGroups": [],
+                                "destinationAddresses": ["*"],
+                                "destinationIpGroups": [],
+                                "destinationFqdns": [],
+                                "destinationPorts": [
+                                    "49152-65535"
+                                ]
+                            },
+                            {
+                                "ruleType": "NetworkRule",
+                                "name": "STUN/TURN UDP",
+                                "ipProtocols": [
+                                    "UDP"
+                                ],
+                                "sourceAddresses": [
+                                    "[parameters('avd-hostpool-subnet')]"
+                                ],
+                                "sourceIpGroups": [],
+                                "destinationAddresses": ["20.202.0.0/16"],
+                                "destinationIpGroups": [],
+                                "destinationFqdns": [],
+                                "destinationPorts": [
+                                    "3478"
+                                ]
+                            },
+                            {
+                                "ruleType": "NetworkRule",
+                                "name": "STUN/TURN TCP",
+                                "ipProtocols": [
+                                    "TCP"
+                                ],
+                                "sourceAddresses": [
+                                    "[parameters('avd-hostpool-subnet')]"
+                                ],
+                                "sourceIpGroups": [],
+                                "destinationAddresses": ["20.202.0.0/16"],
+                                "destinationIpGroups": [],
+                                "destinationFqdns": [],
                                 "destinationPorts": [
                                     "443"
                                 ]
@@ -525,6 +558,28 @@
                                 "targetFqdns": [
                                     "*.azure-dns.net"
                                 ],
+                                "targetUrls": [],
+                                "terminateTLS": false,
+                                "sourceAddresses": [
+                                    "[parameters('avd-hostpool-subnet')]"
+                                ],
+                                "destinationAddresses": [],
+                                "sourceIpGroups": []
+                            },
+                            {
+                                "ruleType": "ApplicationRule",
+                                "name": "WindowsDiagnostics",
+                                "protocols": [
+                                    {
+                                        "protocolType": "Https",
+                                        "port": 443
+                                    }
+                                ],
+                                "fqdnTags": [
+                                    "WindowsDiagnostics"
+                                ],
+                                "webCategories": [],
+                                "targetFqdns": [],
                                 "targetUrls": [],
                                 "terminateTLS": false,
                                 "sourceAddresses": [

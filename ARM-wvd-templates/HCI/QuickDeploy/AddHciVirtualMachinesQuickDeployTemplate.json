@@ -2,6 +2,20 @@
     "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
     "contentVersion": "1.0.0.0",
     "parameters": {
+      "artifactsLocation": {
+        "type": "string",
+        "metadata": {
+          "description": "The base URI where the Azure artifacts required by this template are located."
+        },
+        "defaultValue": "https://raw.githubusercontent.com/Azure/RDS-Templates/master/ARM-wvd-templates/DSC/Configuration.zip"
+      },
+      "hciArtifactsLocation": {
+        "type": "string",
+        "metadata": {
+          "description": "The base URI where the Azure Stack HCI artifacts required by this template are located."
+        },
+        "defaultValue": "https://raw.githubusercontent.com/Azure/RDS-Templates/master/ARM-wvd-templates/HCI/HciCustomScript.ps1"
+      },
       "hostPoolName": {
         "type": "string",
         "metadata": {
@@ -82,22 +96,22 @@
       "customLocationId": {
         "type": "string",
         "metadata": {
-          "description": "A deployment target created and customized by your organization for creating virtual machines. The custom location is associated to an Azure Stack HCI cluster."
+          "description": "A deployment target created and customized by your organization for creating virtual machines. The custom location is associated to an Azure Stack HCI cluster. E.g., /subscriptions/<subscriptionID>/resourcegroups/Contoso-rg/providers/microsoft.extendedlocation/customlocations/Contoso-CL"
         }
       },
       "virtualProcessorCount": {
         "type": "int",
         "metadata": {
-          "description": "Virtual Processor Count."
+          "description": "Virtual Processor Count. Default is 4."
         },
         "defaultValue": 4
       },
-      "memoryGB": {
+      "memoryMB": {
         "type": "int",
         "metadata": {
-          "description": "Memory in GB."
+          "description": "Memory in MB. Default is 8192."
         },
-        "defaultValue": 8
+        "defaultValue": 8192
       },
       "vmInitialNumber": {
         "type": "int",
@@ -108,7 +122,7 @@
       "vmNumberOfInstances": {
         "type": "int",
         "metadata": {
-          "description": "Number of session hosts that will be created and added to the hostpool."
+          "description": "Number of session hosts that will be created and added to the hostpool. Default is 1."
         },
         "defaultValue": 1
       },
@@ -121,13 +135,13 @@
       "imageId": {
         "type": "string",
         "metadata": {
-          "description": "Full ARM resource ID of the AzureStackHCI virtual machine image used for the VMs."
+          "description": "Full ARM resource ID of the AzureStackHCI virtual machine image used for the VMs. /subscriptions/<subscriptionID>/resourceGroups/Contoso-rg/providers/microsoft.azurestackhci/marketplacegalleryimages/Contoso-Win11image."
         }
       },
-      "virtualNetworkId": {
+      "logicalNetworkId": {
         "type": "string",
         "metadata": {
-          "description": "Full ARM resource ID of the AzureStackHCI virtual network used for the VMs."
+          "description": "Full ARM resource ID of the AzureStackHCI logical network used for the VMs. /subscriptions/<subscriptionID>/resourceGroups/Contoso-rg/providers/Microsoft.AzureStackHCI/logicalnetworks/Contoso-logicalnetwork"
         }
       },
       "tags": {
@@ -162,7 +176,7 @@
     },
     "resources": [
       {
-        "apiVersion": "2018-05-01",
+        "apiVersion": "2019-05-01",
         "name": "[concat('UpdateHostPool-', parameters('deploymentId'))]",
         "type": "Microsoft.Resources/deployments",
         "resourceGroup": "[parameters('hostpoolResourceGroup')]",
@@ -185,7 +199,7 @@
         }
       },
       {
-        "apiVersion": "2018-05-01",
+        "apiVersion": "2019-05-01",
         "name": "[concat('hci-addVms-linkedTemplate-', parameters('deploymentId'))]",
         "type": "Microsoft.Resources/deployments",
         "resourceGroup": "[parameters('vmResourceGroup')]",
@@ -226,11 +240,11 @@
             "virtualProcessorCount": {
               "value": "[parameters('virtualProcessorCount')]"
             },
-            "memoryGB": {
-              "value": "[parameters('memoryGB')]"
+            "memoryMB": {
+              "value": "[parameters('memoryMB')]"
             },
-            "virtualNetworkId": {
-              "value": "[parameters('virtualNetworkId')]"
+            "logicalNetworkId": {
+              "value": "[parameters('logicalNetworkId')]"
             },
             "imageId": {
               "value": "[parameters('imageId')]"
@@ -255,6 +269,12 @@
             },
             "oUPath": {
               "value": "[parameters('oUPath')]"
+            },
+            "fileUri": {
+              "value": "[parameters('hciArtifactsLocation')]"
+            },
+            "configurationZipUri": {
+              "value": "[parameters('artifactsLocation')]"
             }
           }
         }
